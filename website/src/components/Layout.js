@@ -2,8 +2,17 @@ import React, {Component} from 'react';
 import {SkipNavLink, SkipNavContent} from '@reach/skip-nav';
 import {MDXProvider} from '@mdx-js/react';
 import styled from '@emotion/styled';
-import {Container, Demo, Button, Row, Col, Flex, MEDIA} from './Framework';
-import Tippy, {TippySingleton} from './Tippy';
+import {
+  Container,
+  Demo,
+  Button,
+  Row,
+  Col,
+  Flex,
+  MEDIA,
+  ExternalLink,
+} from './Framework';
+import Tippy from './Tippy';
 import Nav from './Nav';
 import NavButtons from './NavButtons';
 import Header from './Header';
@@ -11,10 +20,9 @@ import Main from './Main';
 import Footer from './Footer';
 import SEO from './SEO';
 import Image from './Image';
-import Emoji from './Emoji';
+import Icon from './Icon';
+import ElasticScroll from './ElasticScroll';
 import CSS from '../css';
-import slugify from 'slugify';
-import elasticScroll from 'elastic-scroll-polyfill';
 
 import 'normalize.css';
 import 'animate.css/source/_base.css';
@@ -30,7 +38,7 @@ const LinkIcon = styled.a`
   opacity: 0;
   transition: opacity 0.2s;
   width: 32px;
-  top: -12px;
+  top: -10px;
   right: -16px;
   color: #7761d1;
 
@@ -42,11 +50,9 @@ const LinkIcon = styled.a`
 
   ${MEDIA.md} {
     right: initial;
-    left: -0.9em;
-
-    &:focus {
-      width: 20px;
-    }
+    text-align: center;
+    width: 30px;
+    left: -30px;
   }
 `;
 
@@ -66,35 +72,35 @@ const A = styled.a`
   }
 `;
 
-let hrefs = [];
+let hrefs = new Set();
 
 class Heading extends React.Component {
   constructor(props) {
     super(props);
 
-    let href = slugify(String(this.props.children), {
-      lower: true,
-      remove: /[*+~.()'"`!:@,?]/g,
-    });
+    let href = []
+      .concat(this.props.children)
+      .filter((child) => typeof child === 'string')
+      .join(' ')
+      .replace(/[^a-zA-Z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/-$/g, '')
+      .toLowerCase();
 
     // Check for duplicate #s
-    if (hrefs.indexOf(href) !== -1) {
+    if (hrefs.has(href)) {
       let counter = 1;
 
-      while (hrefs.indexOf(href + counter) !== -1) {
+      while (hrefs.has(href + counter)) {
         counter++;
       }
 
       href = `${href}-${counter}`;
     }
 
-    hrefs.push(href);
+    hrefs.add(href);
 
     this.state = {href};
-  }
-
-  componentWillUnmount() {
-    hrefs = hrefs.filter(href => href !== this.state.href);
   }
 
   render() {
@@ -118,77 +124,41 @@ class Heading extends React.Component {
 
 const components = {
   Tippy,
-  TippySingleton,
   Demo,
   Button,
   Row,
   Col,
   Flex,
   Image,
-  Emoji,
-  a: props => {
+  Icon,
+  a: (props) => {
     const extendedProps = {...props};
+    const re = /^(\.\.)?[/#]/.test(props.href);
 
-    if (props.href && props.href[0] !== '/') {
+    if (props.href && !re) {
       extendedProps.rel = 'nofollow noreferrer';
       extendedProps.target = '_blank';
     }
 
     return <A {...extendedProps} />;
   },
-  h3: props => <Heading {...props} level={3} />,
-  h4: props => <Heading {...props} level={4} />,
-  h5: props => <Heading {...props} level={5} />,
-  h6: props => <Heading {...props} level={6} />,
-  tr: props => {
-    const maybeStrongNode = props.children[0].props.children[0]; // <strong>
-    const isPluginRow =
-      maybeStrongNode && maybeStrongNode.props
-        ? maybeStrongNode.props.mdxType === 'strong'
-        : false;
-    return <tr {...props} className={isPluginRow ? 'plugin-prop' : ''} />;
-  },
-  // TODO: find a better way to do this
-  td: class extends React.Component {
-    ref = React.createRef();
-
-    state = {dataLabel: ''};
-
-    componentDidMount() {
-      let child = this.ref.current;
-      let i = 0;
-
-      while ((child = child.previousSibling) != null) {
-        i++;
-      }
-
-      this.setState({
-        dataLabel: ['Prop', 'Default', 'Description'][i],
-      });
-    }
-
-    render() {
-      return (
-        <td ref={this.ref} {...this.props} data-label={this.state.dataLabel} />
-      );
-    }
-  },
-  pre: class extends React.Component {
-    ref = React.createRef();
-
-    componentDidMount() {
-      if (/Mac/.test(navigator.userAgent)) {
-        elasticScroll({targets: this.ref.current});
-      }
-    }
-
-    render() {
-      return <pre ref={this.ref} {...this.props} />;
-    }
-  },
+  h3: (props) => <Heading {...props} level={3} />,
+  h4: (props) => <Heading {...props} level={4} />,
+  h5: (props) => <Heading {...props} level={5} />,
+  h6: (props) => <Heading {...props} level={6} />,
+  pre: (props) => (
+    <ElasticScroll>
+      <pre {...props} />
+    </ElasticScroll>
+  ),
 };
 
 class Layout extends Component {
+  constructor() {
+    super();
+    hrefs = new Set();
+  }
+
   state = {
     isNavOpen: false,
   };
@@ -200,10 +170,6 @@ class Layout extends Component {
   closeNav = () => {
     this.setState({isNavOpen: false});
   };
-
-  componentDidMount() {
-    hrefs = [];
-  }
 
   render() {
     const {isNavOpen} = this.state;
@@ -225,12 +191,22 @@ class Layout extends Component {
           <Nav isOpen={isNavOpen} close={this.closeNav} />
           <SkipNavContent>
             <Container>
-              <h2>{pageContext.frontmatter.title}</h2>
+              {pageContext.frontmatter.title !== 'Demo' && (
+                <h2>{pageContext.frontmatter.title}</h2>
+              )}
               {children}
             </Container>
             <NavButtons next={pageContext.frontmatter.index + 1} />
           </SkipNavContent>
-          <Footer>© {new Date().getFullYear()} - MIT License</Footer>
+          <Footer>
+            <p>© {new Date().getFullYear()} — MIT License</p>
+            <small>
+              Icons made by Freepik from{' '}
+              <ExternalLink href="https://flaticon.com">
+                www.flaticon.com
+              </ExternalLink>
+            </small>
+          </Footer>
         </Main>
       </MDXProvider>
     );

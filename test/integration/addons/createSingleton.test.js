@@ -1,14 +1,9 @@
 import {fireEvent} from '@testing-library/dom';
-import {h, cleanDocumentBody, setTestDefaultProps} from '../../utils';
+import {h} from '../../utils';
 
 import createSingleton from '../../../src/addons/createSingleton';
 import tippy from '../../../src';
-import {clean, getFormattedMessage} from '../../../src/validation';
-
-setTestDefaultProps();
-jest.useFakeTimers();
-
-afterEach(cleanDocumentBody);
+import {getFormattedMessage} from '../../../src/validation';
 
 describe('createSingleton', () => {
   it('shows when a tippy instance reference is triggered', () => {
@@ -37,7 +32,7 @@ describe('createSingleton', () => {
 
   it('uses the relevant tippy instance content', () => {
     const configs = [{content: 'hi'}, {content: 'bye'}];
-    const instances = configs.map(props => tippy(h(), props));
+    const instances = configs.map((props) => tippy(h(), props));
     const singletonInstance = createSingleton(instances);
 
     fireEvent.mouseEnter(instances[0].reference);
@@ -111,8 +106,8 @@ describe('createSingleton', () => {
           'The first argument passed to createSingleton() must be an array of tippy',
           'instances. The passed value was',
           String(null),
-        ].join(' '),
-      ),
+        ].join(' ')
+      )
     );
   });
 
@@ -183,28 +178,14 @@ describe('createSingleton', () => {
     const tippyInstances = tippy([h(), h()]);
     const singletonInstance = createSingleton(tippyInstances);
     singletonInstance.destroy(false);
-    tippyInstances.forEach(instance => {
+    tippyInstances.forEach((instance) => {
       expect(instance.state.isDestroyed).toBe(false);
     });
   });
 
-  it('does not throw maximum call stack error due to stale lifecycle hooks', () => {
-    const tippyInstances = tippy([h(), h()]);
-    const instance = tippyInstances[0];
-    const singletonInstance = createSingleton(tippyInstances);
-
-    singletonInstance.destroy(false);
-
-    createSingleton(tippyInstances);
-
-    fireEvent.mouseEnter(instance.reference);
-
-    jest.runAllTimers();
-  });
-
   it('restores original state when destroyed', () => {
     const tippyInstances = tippy([h(), h()]);
-    const prevInstanceProps = tippyInstances.map(instance => instance.props);
+    const prevInstanceProps = tippyInstances.map((instance) => instance.props);
     const singletonInstance = createSingleton(tippyInstances);
 
     singletonInstance.destroy(false);
@@ -218,7 +199,7 @@ describe('createSingleton', () => {
     const tippyInstances = tippy([h(), h()]);
     const singletonInstance = createSingleton(tippyInstances, {delay: 100});
 
-    const id = singletonInstance.popperChildren.tooltip.id;
+    const id = `__NAMESPACE_PREFIX__-${singletonInstance.id}`;
     const {reference: firstRef} = tippyInstances[0];
     const {reference: secondRef} = tippyInstances[1];
 
@@ -226,34 +207,89 @@ describe('createSingleton', () => {
     jest.runAllTimers();
 
     expect(firstRef.getAttribute('aria-describedby')).toBe(id);
-
-    fireEvent.mouseLeave(firstRef);
-    fireEvent.mouseEnter(secondRef);
-
-    expect(firstRef.getAttribute('aria-describedby')).toBe(null);
     expect(secondRef.getAttribute('aria-describedby')).toBe(id);
 
-    singletonInstance.setProps({aria: 'labelledby'});
-
-    fireEvent.mouseLeave(secondRef);
-    fireEvent.mouseEnter(firstRef);
-
-    expect(firstRef.getAttribute('aria-labelledby')).toBe(id);
-    expect(secondRef.getAttribute('aria-labelledby')).toBe(null);
-
-    singletonInstance.setProps({aria: null});
-
     fireEvent.mouseLeave(firstRef);
     fireEvent.mouseEnter(secondRef);
+
+    expect(firstRef.getAttribute('aria-describedby')).toBe(id);
+    expect(secondRef.getAttribute('aria-describedby')).toBe(id);
+
+    singletonInstance.setProps({aria: {content: 'labelledby'}});
+    singletonInstance.hide();
+
+    fireEvent.mouseEnter(firstRef);
+    jest.runAllTimers();
+
+    expect(firstRef.getAttribute('aria-labelledby')).toBe(id);
+    expect(secondRef.getAttribute('aria-labelledby')).toBe(id);
+
+    fireEvent.mouseLeave(firstRef);
+    jest.advanceTimersByTime(100);
 
     expect(firstRef.getAttribute('aria-labelledby')).toBe(null);
     expect(secondRef.getAttribute('aria-labelledby')).toBe(null);
   });
 
-  it('can accept plugins', () => {
-    const plugins = [{fn: () => ({})}];
-    const singletonInstance = createSingleton(tippy([h(), h()]), {}, plugins);
+  it('does not use the placeholder element content with a function', () => {
+    const refs = [h(), h()];
+    const instances = tippy(refs, {content: () => 'hello'});
+    const singleton = createSingleton(instances);
+    const firstRef = refs[0];
 
-    expect(singletonInstance.plugins.slice(1)).toEqual(plugins);
+    expect(singleton.props.content).toBe('__DEFAULT_TEST_CONTENT__');
+
+    fireEvent.mouseEnter(firstRef);
+
+    expect(singleton.props.content).toBe('hello');
+  });
+});
+
+describe('overrides prop', () => {
+  it('individual tippy instance props override singleton instance props', () => {
+    const tippyInstances = tippy([h(), h()], {delay: 100});
+    const singletonInstance = createSingleton(tippyInstances, {
+      delay: 0,
+      overrides: ['delay'],
+    });
+
+    fireEvent.mouseEnter(tippyInstances[0].reference);
+
+    expect(singletonInstance.props.delay).toBe(100);
+  });
+
+  it('can be updated via .setProps()', () => {
+    const tippyInstances = tippy([h(), h()], {delay: 100});
+    const singletonInstance = createSingleton(tippyInstances, {
+      delay: 0,
+      overrides: ['delay'],
+    });
+
+    singletonInstance.setProps({overrides: []});
+
+    fireEvent.mouseEnter(tippyInstances[0].reference);
+
+    expect(singletonInstance.props.delay).toBe(0);
+  });
+});
+
+describe('.setInstances() method', () => {
+  it('updates the singleton instances', () => {
+    const initialRefs = [h(), h()];
+    const nextRefs = [initialRefs[0], h()];
+
+    const initialInstances = tippy(initialRefs);
+    const nextInstances = tippy(nextRefs);
+
+    const singleton = createSingleton(initialInstances);
+
+    singleton.setInstances(nextInstances);
+
+    expect(initialInstances[1].state.isEnabled).toBe(true);
+    expect(nextInstances[1].state.isEnabled).toBe(false);
+
+    fireEvent.mouseEnter(nextRefs[1]);
+
+    expect(singleton.state.isVisible).toBe(true);
   });
 });

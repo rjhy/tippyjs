@@ -1,25 +1,19 @@
 import {fireEvent} from '@testing-library/dom';
-import {h, cleanDocumentBody} from '../../utils';
+import {h} from '../../utils';
 
-import tippy from '../../../src';
 import delegate from '../../../src/addons/delegate';
-import {clean, getFormattedMessage} from '../../../src/validation';
+import {getFormattedMessage} from '../../../src/validation';
 import {normalizeToArray} from '../../../src/utils';
-
-tippy.setDefaultProps({duration: 0, delay: 0});
-jest.useFakeTimers();
 
 let instance;
 let delegateElement = h();
 
 afterEach(() => {
   if (instance) {
-    normalizeToArray(instance).forEach(i => i.destroy());
+    normalizeToArray(instance).forEach((i) => i.destroy());
   }
 
   delegateElement = h();
-
-  cleanDocumentBody();
 });
 
 describe('delegate', () => {
@@ -55,7 +49,7 @@ describe('delegate', () => {
   it('handles an array of delegate targets', () => {
     const refs = [h(), h()];
 
-    refs.forEach(ref => ref.append(document.createElement('button')));
+    refs.forEach((ref) => ref.append(document.createElement('button')));
 
     instance = delegate(refs, {target: 'button'});
     const button = refs[0].querySelector('button');
@@ -66,7 +60,7 @@ describe('delegate', () => {
 
     expect(button._tippy).toBeDefined();
 
-    instance.forEach(instance => instance.destroy());
+    instance.forEach((instance) => instance.destroy());
   });
 
   it('does not show its own tippy', () => {
@@ -92,8 +86,8 @@ describe('delegate', () => {
           '`' + String(null) + '`',
           'as its targets (first) argument. Valid types are: String, Element, Element[],',
           'or NodeList.',
-        ].join(' '),
-      ),
+        ].join(' ')
+      )
     );
   });
 
@@ -105,8 +99,8 @@ describe('delegate', () => {
         [
           'You must specity a `target` prop indicating a CSS selector string matching',
           'the target elements that should receive a tippy.',
-        ].join(' '),
-      ),
+        ].join(' ')
+      )
     );
   });
 
@@ -118,8 +112,8 @@ describe('delegate', () => {
         [
           'You must specity a `target` prop indicating a CSS selector string matching',
           'the target elements that should receive a tippy.',
-        ].join(' '),
-      ),
+        ].join(' ')
+      )
     );
   });
 
@@ -153,27 +147,16 @@ describe('delegate', () => {
     expect(button._tippy).toBeDefined();
   });
 
-  it('can accept plugins', () => {
-    const button = h('button', {}, delegateElement);
-    const plugins = [{fn: () => ({})}];
-    instance = delegate(delegateElement, {target: 'button'}, plugins);
-
-    fireEvent.mouseOver(button);
-
-    expect(instance.plugins).toEqual(plugins);
-    expect(button._tippy.plugins).toEqual(plugins);
-  });
-
   it('handles `data-tippy-trigger` attribute', () => {
     const clickButton = h(
       'button',
       {'data-tippy-trigger': 'click'},
-      delegateElement,
+      delegateElement
     );
     const focusButton = h(
       'button',
       {'data-tippy-trigger': 'focus'},
-      delegateElement,
+      delegateElement
     );
 
     instance = delegate(delegateElement, {

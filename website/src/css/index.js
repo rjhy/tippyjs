@@ -1,7 +1,6 @@
 import React from 'react';
 import {MEDIA} from '../components/Framework';
 import {Global, css} from '@emotion/core';
-import theme from './theme';
 
 const MONOSPACE_FONT_STACK = `Menlo, "Dank Mono", Inconsolata, "Operator Mono", Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", "Courier New", Courier, monospace`;
 
@@ -58,9 +57,15 @@ const core = css`
     margin-top: 0;
     margin-bottom: 16px;
     color: #333;
+    word-break: break-word;
 
     &:hover .link-icon {
       opacity: 1;
+    }
+
+    .link-icon.focus-visible {
+      outline: 0;
+      box-shadow: 0 0 0 1px;
     }
   }
 
@@ -108,10 +113,14 @@ const core = css`
   }
 
   h3 {
-    font-size: 32px;
+    font-size: 28px;
     margin-top: 60px;
     margin-bottom: 24px;
     padding-right: 30px;
+
+    ${MEDIA.sm} {
+      font-size: 32px;
+    }
 
     ${MEDIA.md} {
       font-size: 36px;
@@ -138,7 +147,7 @@ const core = css`
   p,
   li {
     line-height: 1.6;
-    margin-top: 8px;
+    margin-top: 12px;
   }
 
   ul {
@@ -283,7 +292,7 @@ const core = css`
 
   button,
   a {
-    &.focus-visible {
+    &.focus-visible:not(.link-icon) {
       outline: 0;
       box-shadow: 0 0 0 2px rgb(255, 255, 255), 0 0 0 5px rgb(150, 180, 255);
     }
@@ -314,7 +323,7 @@ const core = css`
 `;
 
 const tippy = css`
-  .tippy-tooltip.ajax-theme {
+  .tippy-box[data-theme~='ajax'] {
     position: absolute;
     width: 200px;
     padding: 0;
@@ -326,20 +335,21 @@ const tippy = css`
     }
   }
 
-  .tippy-tooltip.tomato-theme[data-placement^='top'] .tippy-arrow {
-    border-top-color: tomato;
-  }
-  .tippy-tooltip.tomato-theme[data-placement^='bottom'] .tippy-arrow {
-    border-bottom-color: tomato;
-  }
-
-  .tippy-tooltip.tomato-theme {
+  .tippy-box[data-theme~='tomato'] {
     font-weight: bold;
     color: yellow;
     background: tomato;
 
-    &[data-animatefill] {
-      background-color: transparent;
+    &[data-placement^='top'] {
+      > .tippy-arrow::before {
+        border-top-color: tomato;
+      }
+    }
+
+    &[data-placement^='bottom'] {
+      > .tippy-arrow::before {
+        border-bottom-color: tomato;
+      }
     }
 
     .tippy-backdrop {
@@ -348,116 +358,55 @@ const tippy = css`
 
     .tippy-svg-arrow {
       fill: tomato;
+      transform: scale(2);
     }
   }
 
-  .tippy-tooltip.scaled-arrow-theme .tippy-arrow {
-    transform: scale(1.5);
+  .tippy-box[data-theme~='scaled-arrow'] > .tippy-arrow::before {
+    transform: scale(1.25);
   }
 
-  .tippy-tooltip.dropdown-theme {
-    text-align: left;
-    font-size: 95%;
-  }
-
-  .tippy-tooltip.crazy-inertia-theme {
-    &[data-inertia][data-state='visible'] {
-      transition-timing-function: cubic-bezier(0.54, 100, 0.2, 0.26);
-    }
-  }
-
-  .tippy-tooltip.large-arrow-theme .tippy-arrow {
+  .tippy-box[data-theme~='large-arrow'] > .tippy-arrow::before {
     transform: scale(1.75);
   }
 
-  .tippy-tooltip.small-arrow-theme .tippy-arrow {
+  .tippy-box[data-theme~='small-arrow'] > .tippy-arrow::before {
     transform: scale(0.75);
   }
 
-  .tippy-tooltip.wide-arrow-theme .tippy-arrow {
+  .tippy-box[data-theme~='wide-arrow'] > .tippy-arrow::before {
     transform: scaleX(1.5);
   }
 
-  .tippy-tooltip.narrow-arrow-theme .tippy-arrow {
+  .tippy-box[data-theme~='narrow-arrow'] > .tippy-arrow::before {
     transform: scale(0.6, 1.2);
   }
 
-  .tippy-tooltip.gradient-theme {
+  .tippy-box[data-theme~='gradient'] {
     background: linear-gradient(130deg, #507bf4, #ff8bcb);
     box-shadow: 0 8px 12px #c9a0ff;
     font-weight: bold;
   }
 
-  .tippy-tooltip.retro-theme {
+  .tippy-box[data-theme~='retro'] {
     background: beige;
     border: 2px solid tomato;
     color: tomato;
     font-weight: bold;
   }
 
-  .tippy-tooltip.forest-theme {
+  .tippy-box[data-theme~='forest'] {
     background: linear-gradient(90deg, #9fe597, #cce581);
     color: #683b33;
     font-weight: bold;
   }
 `;
 
-const prism = css`
-  code[class*='language-'],
-  pre[class*='language-'] {
+const code = css`
+  code:not(.grvsc-code) {
+    background: rgba(69, 0, 179, 0.1);
+    color: #4e1cc7;
     font-family: ${MONOSPACE_FONT_STACK};
-    color: #c6dbf4;
-    background: none;
-    text-align: left;
-    white-space: pre;
-    word-spacing: normal;
-    word-break: normal;
-    word-wrap: normal;
-    line-height: 2;
-    font-size: 90%;
-    -moz-tab-size: 2;
-    -o-tab-size: 2;
-    tab-size: 2;
-    -webkit-hyphens: none;
-    -moz-hyphens: none;
-    -ms-hyphens: none;
-    hyphens: none;
-  }
-
-  pre[class*='language-'] {
-    padding: 20px 16px;
-    margin-top: 0;
-    margin-left: -16px;
-    margin-right: -16px;
-    background: #272642;
-    font-size: 16px;
-    line-height: 1.5;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-
-    [data-elastic-wrapper] {
-      display: inline-block;
-    }
-
-    ${MEDIA.sm} {
-      margin-left: -25px;
-      margin-right: -25px;
-      padding: 20px 25px;
-    }
-
-    ${MEDIA.md} {
-      border-radius: 8px;
-      margin-left: 0;
-      margin-right: 0;
-      padding: 16px 25px;
-      font-size: 17px;
-    }
-  }
-
-  code.language-text {
-    border: 1px solid ${theme.border};
-    background: white;
-    color: inherit;
     font-weight: bold;
     padding: 0.15em 0.4em;
     border-radius: 0.25em;
@@ -465,201 +414,41 @@ const prism = css`
     font-size: 90%;
   }
 
-  .token.important,
-  .token.atrule,
-  .token.keyword,
-  .token.attribute {
-    color: #d296ff;
+  .grvsc-container {
+    border-radius: 0 !important;
+    overflow-x: none !important;
+
+    ${MEDIA.sm} {
+      border-radius: 10px !important;
+    }
   }
 
-  .token.comment,
-  .token.prolog,
-  .token.doctype,
-  .token.cdata {
-    color: #7f96cf;
-  }
-
-  .token.attr-name {
-    color: #c3a2ff;
-  }
-
-  .token.selector {
-    color: #ffc777;
-  }
-
-  .token.constant,
-  .token.unit {
-    color: #ff959c;
-  }
-
-  .token.punctuation {
-    color: #93e2ff;
-  }
-
-  .token.block {
-    color: #afcffa;
-  }
-
-  .token.tag .token.punctuation,
-  .token.operator,
-  .token.op,
-  .token.module,
-  .token.control {
-    color: #93e2ff;
-  }
-
-  .token.nil {
-    color: #9b9fb0;
-  }
-
-  .token.arrow {
-    color: #c49dff;
-    text-shadow: none;
-  }
-
-  .token.parameter {
-    color: #fface4;
-  }
-
-  .token.flow {
-    color: #89ddff;
-    font-style: italic;
-  }
-
-  .token.spread {
-    font-weight: bold;
-    color: #ff7e99;
-    text-shadow: 0px 1px 6px;
-  }
-
-  .namespace {
-    opacity: 0.7;
-  }
-
-  .token.tag {
-    color: #fa7692;
-  }
-
-  .token.number,
-  .token.boolean,
-  .token.symbol,
-  .token.deleted {
-    color: #ff9d74;
-  }
-
-  .token.string,
-  .token.value,
-  .language-css .token.string,
-  .token.url,
-  .token.attr-value,
-  .token.char,
-  .token.builtin,
-  .token.inserted {
-    color: #c3e88d;
-  }
-
-  .token.punctuation.quote {
-    color: #89ddff;
-  }
-
-  .token.entity,
-  .style .token.string {
-    color: #ecd6ba;
-  }
-
-  .token.function,
-  .language-css .token.property {
-    color: #92afff;
-    text-shadow: 0 0px 7px #0066ff, 0 1px 4px black;
-  }
-
-  .token.method,
-  .language-css .token.function {
-    color: #42c7ff;
-  }
-
-  .token.variable {
-    color: #ffad92;
-  }
-
-  .token.dom,
-  .token.class-name,
-  .token.console,
-  .token.object {
-    color: #ffd181;
-  }
-
-  .token.property.definition {
-    color: #77e0c6;
-  }
-
-  .token.property.access {
-    color: #b8c7fc;
-  }
-
-  .token.regex {
-    color: #88ecff;
-  }
-
-  .token.bold {
-    font-weight: bold;
-  }
-  .token.italic {
-    font-style: italic;
-  }
-
-  .token.entity {
-    cursor: help;
-  }
-
-  .gatsby-highlight {
-    position: relative;
-    margin-top: 24px;
-    margin-bottom: 24px;
+  .moonlight-ii {
+    margin-left: -16px;
+    margin-right: -16px;
 
     ${MEDIA.md} {
       margin-left: -25px;
       margin-right: -25px;
     }
+  }
 
-    &[data-language='html']::before {
-      color: #ffafaf;
-    }
+  .grvsc-line {
+    padding: 0 15px !important;
 
-    &[data-language='js']::before {
-      color: #ffd789;
-    }
-
-    &[data-language='css']::before {
-      color: #8fdeff;
-    }
-
-    &[data-language='bash']::before {
-      color: #d2adff;
-    }
-
-    &::before {
-      content: attr(data-language);
-      display: block;
-      position: absolute;
-      font-weight: bold;
-      font-family: ${MONOSPACE_FONT_STACK};
-      color: white;
-      margin-top: 6px;
-      text-transform: uppercase;
-      font-size: 15px;
-      text-align: right;
-      pointer-events: none;
-      width: calc(100% + 10px);
-
-      ${MEDIA.md} {
-        width: calc(100% - 10px);
-      }
+    ${MEDIA.sm} {
+      padding: 0 25px !important;
     }
   }
 
-  a code.language-text {
-    color: inherit;
+  .grvsc-code {
+    font-family: ${MONOSPACE_FONT_STACK};
+    line-height: 2;
+    font-size: 15px;
+
+    ${MEDIA.sm} {
+      font-size: 16px;
+    }
   }
 `;
 
@@ -668,7 +457,7 @@ function CSS() {
     <>
       <Global styles={core} />
       <Global styles={tippy} />
-      <Global styles={prism} />
+      <Global styles={code} />
     </>
   );
 }

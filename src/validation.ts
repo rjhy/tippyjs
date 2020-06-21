@@ -3,10 +3,10 @@ import {Targets} from './types';
 export function createMemoryLeakWarning(method: string): string {
   const txt = method === 'destroy' ? 'n already-' : ' ';
 
-  return `
-    ${method}() was called on a${txt}destroyed instance. This is a no-op but
-    indicates a potential memory leak.
-  `;
+  return [
+    `${method}() was called on a${txt}destroyed instance. This is a no-op but`,
+    'indicates a potential memory leak.',
+  ].join(' ');
 }
 
 export function clean(value: string): string {
@@ -41,30 +41,30 @@ export function getFormattedMessage(message: string): string[] {
   ];
 }
 
-/**
- * Helpful wrapper around `console.warn()`.
- * TODO: Should we use a cache so it only warns a single time and not spam the
- * console? (Need to consider hot reloading and invalidation though). Chrome
- * already batches warnings as well.
- */
+// Assume warnings and errors never have the same message
+let visitedMessages: Set<string>;
+if (__DEV__) {
+  resetVisitedMessages();
+}
+
+export function resetVisitedMessages(): void {
+  visitedMessages = new Set();
+}
+
 export function warnWhen(condition: boolean, message: string): void {
-  if (condition) {
+  if (condition && !visitedMessages.has(message)) {
+    visitedMessages.add(message);
     console.warn(...getFormattedMessage(message));
   }
 }
 
-/**
- * Helpful wrapper around `console.error()`
- */
 export function errorWhen(condition: boolean, message: string): void {
-  if (condition) {
+  if (condition && !visitedMessages.has(message)) {
+    visitedMessages.add(message);
     console.error(...getFormattedMessage(message));
   }
 }
 
-/**
- * Validates the `targets` value passed to `tippy()`
- */
 export function validateTargets(targets: Targets): void {
   const didPassFalsyValue = !targets;
   const didPassPlainObject =
@@ -76,16 +76,16 @@ export function validateTargets(targets: Targets): void {
     [
       'tippy() was passed',
       '`' + String(targets) + '`',
-      'as its targets (first) argument. Valid types are: String, Element, Element[],',
-      'or NodeList.',
-    ].join(' '),
+      'as its targets (first) argument. Valid types are: String, Element,',
+      'Element[], or NodeList.',
+    ].join(' ')
   );
 
   errorWhen(
     didPassPlainObject,
     [
-      'tippy() was passed a plain object which is no longer supported as an argument.',
-      'See: https://atomiks.github.io/tippyjs/misc/#custom-position',
-    ].join(' '),
+      'tippy() was passed a plain object which is not supported as an argument',
+      'for virtual positioning. Use props.getReferenceClientRect instead.',
+    ].join(' ')
   );
 }

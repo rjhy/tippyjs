@@ -1,33 +1,37 @@
 import React, {Component, createRef} from 'react';
 import styled from '@emotion/styled';
-import {MEDIA, Link} from './Framework';
 import {StaticQuery, graphql} from 'gatsby';
-import {sortActivePages} from '../utils';
+import {css} from '@emotion/core';
+import {ChevronDown} from 'react-feather';
+import {Location} from '@reach/router';
+import {MEDIA, Link, Button} from './Framework';
+import {sortActivePages, getVersionFromPath} from '../utils';
 import X from 'react-feather/dist/icons/x';
 import ElasticScroll from './ElasticScroll';
+import Tippy from './Tippy';
 
 const Navbar = styled.nav`
-  display: ${props => (props.isMounted ? 'block' : 'none')};
+  display: ${(props) => (props.isMounted ? 'block' : 'none')};
   position: fixed;
   top: 0;
   bottom: 0;
   left: 0;
   width: 250px;
-  background: linear-gradient(180deg, rgba(121, 148, 198, 0.92), #565791);
+  background: linear-gradient(180deg, rgba(121, 148, 198, 0.6), #565791);
   color: white;
   overflow-y: auto;
   z-index: 2;
-  transform: ${props =>
-    props.isOpen
-      ? 'translate3d(-4%, 0, 0) scaleX(1)'
-      : 'translate3d(-100%, 0, 0) scaleX(0)'};
-  transition: transform ${props => (props.isOpen ? '0.55s' : '0.3s')},
-    visibility 0.2s, opacity 0.8s;
-  transition-timing-function: ${props =>
-    props.isOpen ? 'cubic-bezier(.165, 1.3, 0.4, 1)' : 'ease'};
-  visibility: ${props => (props.isOpen ? 'visible' : 'hidden')};
+  transform: ${(props) =>
+    props.isOpen ? 'translate3d(0, 0, 0)' : 'translate3d(-100%, 0, 0)'};
+  transition: ${(props) =>
+      props.isOpen ? 'transform 0.5s' : 'transform 0.5s 0.15s'},
+    visibility 0.15s, opacity 0.15s;
+  transition-timing-function: ${(props) =>
+    props.isOpen ? 'cubic-bezier(0.22, 1, 0.36, 1)' : 'ease'};
+  visibility: ${(props) => (props.isOpen ? 'visible' : 'hidden')};
   box-shadow: 4px 0 32px 0 rgba(0, 32, 64, 0.25);
-  opacity: ${props => (props.isOpen ? 1 : 0)};
+  backdrop-filter: blur(15px) saturate(180%);
+  opacity: ${(props) => (props.isOpen ? '1' : '0')};
 
   ${MEDIA.lg} {
     padding-top: 0;
@@ -37,6 +41,8 @@ const Navbar = styled.nav`
     box-shadow: none;
     opacity: 1;
     will-change: transform, opacity;
+    backdrop-filter: none;
+    background: linear-gradient(180deg, rgba(121, 148, 198, 0.92), #565791);
   }
 `;
 
@@ -49,10 +55,6 @@ const List = styled.ul`
 const ListItem = styled.li`
   margin: 0;
 
-  &:first-of-type {
-    padding-top: 32px;
-  }
-
   &:last-of-type {
     padding-bottom: 32px;
   }
@@ -60,7 +62,6 @@ const ListItem = styled.li`
   > a {
     display: block;
     padding: 4px 25px;
-    padding-left: calc(25px + 4%);
     font-size: 17px;
     border: 1px dashed transparent;
 
@@ -109,6 +110,25 @@ const XIcon = styled(X)`
   width: 32px;
 `;
 
+const VersionButton = styled(Button)`
+  border: none;
+  margin: 15px 25px;
+
+  &:hover {
+    background-color: white;
+    color: #555;
+  }
+`;
+
+const Li = styled.li`
+  list-style: none;
+
+  &:not(:last-of-type) {
+    margin-bottom: 5px;
+    margin-top: 0;
+  }
+`;
+
 class Nav extends Component {
   state = {
     isMounted: false,
@@ -129,13 +149,13 @@ class Nav extends Component {
     this.props.close();
   };
 
-  handleBlur = e => {
-    if (!e.currentTarget.contains(e.relatedTarget)) {
+  handleBlur = (e) => {
+    if (!this.ref.current.contains(e.relatedTarget)) {
       this.props.close();
     }
   };
 
-  handleOutsideClick = e => {
+  handleOutsideClick = (e) => {
     if (this.props.isOpen && !this.ref.current.contains(e.target)) {
       this.props.close();
     }
@@ -162,35 +182,87 @@ class Nav extends Component {
   render() {
     const {isOpen} = this.props;
     const {isMounted, transitions} = this.state;
+
     return (
-      <ElasticScroll>
-        <Navbar
-          id="main-nav"
-          ref={this.ref}
-          style={{transition: transitions ? '' : 'none'}}
-          isOpen={isOpen}
-          isMounted={isMounted}
-          onBlur={this.handleBlur}
-        >
-          <XButton aria-label="Close Menu" onClick={this.handleClose}>
-            <XIcon />
-          </XButton>
-          <List>
-            <StaticQuery
-              query={allMdxQuery}
-              render={data => {
-                return sortActivePages(data.allMdx.edges).map(({node}) => (
-                  <ListItem key={node.frontmatter.path}>
-                    <Link to={node.frontmatter.path}>
-                      {node.frontmatter.title}
-                    </Link>
-                  </ListItem>
-                ));
-              }}
-            />
-          </List>
-        </Navbar>
-      </ElasticScroll>
+      <Location>
+        {({location}) => (
+          <ElasticScroll>
+            <Navbar
+              id="main-nav"
+              ref={this.ref}
+              style={{transition: transitions ? '' : 'none'}}
+              isOpen={isOpen}
+              isMounted={isMounted}
+              onBlur={this.handleBlur}
+              tabIndex="-1"
+            >
+              <XButton aria-label="Close Menu" onClick={this.handleClose}>
+                <XIcon />
+              </XButton>
+              <List>
+                <div>
+                  <Tippy
+                    theme="light"
+                    placement="bottom-start"
+                    trigger="mouseenter click"
+                    interactive={true}
+                    arrow={false}
+                    offset={[0, 5]}
+                    duration={[200, 100]}
+                    css={css`
+                      font-size: 16px;
+                      padding: 8px;
+                    `}
+                    sticky={true}
+                    content={
+                      <ul
+                        css={css`
+                          padding-left: 0;
+                        `}
+                      >
+                        <Li>
+                          <Link to="/v6/getting-started/">
+                            v6.x docs (latest)
+                          </Link>
+                        </Li>
+                        <Li>
+                          <Link to="/v5/getting-started/">v5.x docs</Link>
+                        </Li>
+                      </ul>
+                    }
+                  >
+                    <VersionButton>
+                      {getVersionFromPath(location.pathname)}.x{' '}
+                      <ChevronDown
+                        size={20}
+                        style={{
+                          position: 'relative',
+                          verticalAlign: -5,
+                          top: 1,
+                        }}
+                      />
+                    </VersionButton>
+                  </Tippy>
+                </div>
+                <StaticQuery
+                  query={allMdxQuery}
+                  render={(data) => {
+                    return sortActivePages(data.allMdx.edges, location).map(
+                      ({node}) => (
+                        <ListItem key={node.frontmatter.path}>
+                          <Link to={node.frontmatter.path}>
+                            {node.frontmatter.title}
+                          </Link>
+                        </ListItem>
+                      )
+                    );
+                  }}
+                />
+              </List>
+            </Navbar>
+          </ElasticScroll>
+        )}
+      </Location>
     );
   }
 }

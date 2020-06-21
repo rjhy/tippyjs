@@ -1,9 +1,9 @@
-import {Instance, Targets, Plugin, Props} from '../types';
 import tippy from '..';
-import {errorWhen} from '../validation';
-import {removeProperties, normalizeToArray, includes} from '../utils';
 import {defaultProps} from '../props';
+import {Instance, Props, Targets} from '../types';
 import {ListenerObject} from '../types-internal';
+import {normalizeToArray, removeProperties} from '../utils';
+import {errorWhen} from '../validation';
 
 const BUBBLING_EVENTS_MAP = {
   mouseover: 'mouseenter',
@@ -17,21 +17,18 @@ const BUBBLING_EVENTS_MAP = {
  */
 function delegate(
   targets: Targets,
-  props: Partial<Props> & {target: string},
-  /** @deprecated use Props.plugins */
-  plugins: Plugin[] = [],
+  props: Partial<Props> & {target: string}
 ): Instance | Instance[] {
+  /* istanbul ignore else */
   if (__DEV__) {
     errorWhen(
       !(props && props.target),
       [
         'You must specity a `target` prop indicating a CSS selector string matching',
         'the target elements that should receive a tippy.',
-      ].join(' '),
+      ].join(' ')
     );
   }
-
-  plugins = props.plugins || plugins;
 
   let listeners: ListenerObject[] = [];
   let childTippyInstances: Instance[] = [];
@@ -39,8 +36,8 @@ function delegate(
   const {target} = props;
 
   const nativeProps = removeProperties(props, ['target']);
-  const parentProps = {...nativeProps, plugins, trigger: 'manual'};
-  const childProps = {...nativeProps, plugins, showOnCreate: true};
+  const parentProps = {...nativeProps, trigger: 'manual', touch: false};
+  const childProps = {...nativeProps, showOnCreate: true};
 
   const returnValue = tippy(targets, parentProps);
   const normalizedReturnValue = normalizeToArray(returnValue);
@@ -65,8 +62,19 @@ function delegate(
       props.trigger ||
       defaultProps.trigger;
 
-    // Only create the instance if the bubbling event matches the trigger type
-    if (!includes(trigger, (BUBBLING_EVENTS_MAP as any)[event.type])) {
+    // @ts-ignore
+    if (targetNode._tippy) {
+      return;
+    }
+
+    if (event.type === 'touchstart' && typeof childProps.touch === 'boolean') {
+      return;
+    }
+
+    if (
+      event.type !== 'touchstart' &&
+      trigger.indexOf((BUBBLING_EVENTS_MAP as any)[event.type])
+    ) {
       return;
     }
 
@@ -81,7 +89,7 @@ function delegate(
     node: Element,
     eventType: string,
     handler: EventListener,
-    options: object | boolean = false,
+    options: object | boolean = false
   ): void {
     node.addEventListener(eventType, handler, options);
     listeners.push({node, eventType, handler, options});
@@ -90,6 +98,7 @@ function delegate(
   function addEventListeners(instance: Instance): void {
     const {reference} = instance;
 
+    on(reference, 'touchstart', onTrigger);
     on(reference, 'mouseover', onTrigger);
     on(reference, 'focusin', onTrigger);
     on(reference, 'click', onTrigger);
@@ -106,7 +115,7 @@ function delegate(
     const originalDestroy = instance.destroy;
     instance.destroy = (shouldDestroyChildInstances = true): void => {
       if (shouldDestroyChildInstances) {
-        childTippyInstances.forEach(instance => {
+        childTippyInstances.forEach((instance) => {
           instance.destroy();
         });
       }

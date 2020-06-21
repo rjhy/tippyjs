@@ -6,14 +6,14 @@ function SEO({title, description, lang, meta, keywords, pageContext}) {
   return (
     <StaticQuery
       query={detailsQuery}
-      render={data => {
+      render={(data) => {
         const metaDescription =
           description || data.site.siteMetadata.description;
         const isIndex = pageContext.frontmatter.title === 'Demo';
         const computedTitle =
           title ||
           (isIndex
-            ? 'Tippy.js - Tooltip and Popover Library'
+            ? 'Tippy.js - Tooltip, Popover, Dropdown, and Menu Library'
             : pageContext.frontmatter.title);
         return (
           <Helmet
@@ -64,7 +64,7 @@ function SEO({title, description, lang, meta, keywords, pageContext}) {
                       name: `keywords`,
                       content: keywords.join(`, `),
                     }
-                  : [],
+                  : []
               )
               .concat(meta)}
           />

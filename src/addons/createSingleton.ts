@@ -1,85 +1,60 @@
-import {Instance, CreateSingleton, Plugin} from '../types';
 import tippy from '..';
-import {defaultProps} from '../props';
+import {div} from '../dom-utils';
+import {
+  CreateSingleton,
+  Plugin,
+  CreateSingletonProps,
+  ReferenceElement,
+  CreateSingletonInstance,
+} from '../types';
+import {removeProperties} from '../utils';
 import {errorWhen} from '../validation';
-import {div} from '../utils';
 
-/**
- * Re-uses a single tippy element for many different tippy instances.
- * Replaces v4's `tippy.group()`.
- */
 const createSingleton: CreateSingleton = (
   tippyInstances,
-  optionalProps = {},
-  /** @deprecated use Props.plugins */
-  plugins = [],
+  optionalProps = {}
 ) => {
+  /* istanbul ignore else */
   if (__DEV__) {
     errorWhen(
       !Array.isArray(tippyInstances),
       [
-        'The first argument passed to createSingleton() must be an array of tippy',
-        'instances. The passed value was',
+        'The first argument passed to createSingleton() must be an array of',
+        'tippy instances. The passed value was',
         String(tippyInstances),
-      ].join(' '),
+      ].join(' ')
     );
   }
 
-  plugins = optionalProps.plugins || plugins;
-
-  tippyInstances.forEach(instance => {
-    instance.disable();
-  });
-
-  let userAria = {...defaultProps, ...optionalProps}.aria;
-  let currentAria: string | null | undefined;
+  let mutTippyInstances = tippyInstances;
+  let references: Array<ReferenceElement> = [];
   let currentTarget: Element;
-  let shouldSkipUpdate = false;
+  let overrides = optionalProps.overrides;
 
-  const references = tippyInstances.map(instance => instance.reference);
+  function setReferences(): void {
+    references = mutTippyInstances.map((instance) => instance.reference);
+  }
+
+  function enableInstances(isEnabled: boolean): void {
+    mutTippyInstances.forEach((instance) => {
+      if (isEnabled) {
+        instance.enable();
+      } else {
+        instance.disable();
+      }
+    });
+  }
+
+  enableInstances(false);
+  setReferences();
 
   const singleton: Plugin = {
-    fn(instance) {
-      function handleAriaDescribedByAttribute(isShow: boolean): void {
-        if (!currentAria) {
-          return;
-        }
-
-        const attr = `aria-${currentAria}`;
-
-        if (isShow && !instance.props.interactive) {
-          currentTarget.setAttribute(attr, instance.popperChildren.tooltip.id);
-        } else {
-          currentTarget.removeAttribute(attr);
-        }
-      }
-
+    fn() {
       return {
-        onAfterUpdate(_, {aria}): void {
-          // Ensure `aria` for the singleton instance stays `null`, while
-          // changing the `userAria` value
-          if (aria !== undefined && aria !== userAria) {
-            if (!shouldSkipUpdate) {
-              userAria = aria;
-            } else {
-              shouldSkipUpdate = true;
-              instance.setProps({aria: null});
-              shouldSkipUpdate = false;
-            }
-          }
-        },
         onDestroy(): void {
-          tippyInstances.forEach(instance => {
-            instance.enable();
-          });
+          enableInstances(true);
         },
-        onMount(): void {
-          handleAriaDescribedByAttribute(true);
-        },
-        onUntrigger(): void {
-          handleAriaDescribedByAttribute(false);
-        },
-        onTrigger(_, event): void {
+        onTrigger(instance, event): void {
           const target = event.currentTarget as Element;
           const index = references.indexOf(target);
 
@@ -89,26 +64,48 @@ const createSingleton: CreateSingleton = (
           }
 
           currentTarget = target;
-          currentAria = userAria;
 
-          if (instance.state.isVisible) {
-            handleAriaDescribedByAttribute(true);
-          }
+          const overrideProps = (overrides || [])
+            .concat('content')
+            .reduce((acc, prop) => {
+              (acc as any)[prop] = mutTippyInstances[index].props[prop];
+              return acc;
+            }, {});
 
-          instance.popperInstance!.reference = target;
-
-          instance.setContent(tippyInstances[index].props.content);
+          instance.setProps({
+            ...overrideProps,
+            getReferenceClientRect: () => target.getBoundingClientRect(),
+          });
         },
       };
     },
   };
 
-  return tippy(div(), {
-    ...optionalProps,
-    plugins: [singleton, ...plugins],
-    aria: null,
+  const instance = tippy(div(), {
+    ...removeProperties(optionalProps, ['overrides']),
+    plugins: [singleton, ...(optionalProps.plugins || [])],
     triggerTarget: references,
-  }) as Instance;
+  }) as CreateSingletonInstance<CreateSingletonProps>;
+
+  const originalSetProps = instance.setProps;
+
+  instance.setProps = (props): void => {
+    overrides = props.overrides || overrides;
+    originalSetProps(props);
+  };
+
+  instance.setInstances = (nextInstances): void => {
+    enableInstances(true);
+
+    mutTippyInstances = nextInstances;
+
+    enableInstances(false);
+    setReferences();
+
+    instance.setProps({triggerTarget: references});
+  };
+
+  return instance;
 };
 
 export default createSingleton;

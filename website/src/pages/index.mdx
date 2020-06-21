@@ -8,23 +8,34 @@ import {ALL_PLACEMENTS, EXTRA_ANIMATIONS} from '../utils';
 import Dropdown from '../components/examples/Dropdown';
 import Singleton from '../components/examples/Singleton';
 import Nesting from '../components/examples/Nesting';
-import Multiple from '../components/examples/Multiple';
 
-Tippy.js is a highly customizable tooltip and popover library powered by
-[Popper.js](https://popper.js.org).
+import brain from '../images/brain.svg';
+import lightning from '../images/lightning.svg';
+import pointer from '../images/pointer.svg';
+import wheelchair from '../images/wheelchair.svg';
+import paintbrush from '../images/paintbrush.svg';
+import typescript from '../images/typescript.svg';
+import browser from '../images/browser.svg';
 
-- <Emoji emoji="🧠" /> <strong>Smart:</strong> optimized positioning engine for flipping and overflow
-prevention
-- <Emoji emoji="⚡" /> <strong>Fast:</strong> high performance for low-end devices
-- <Emoji emoji="🖱️" /> <strong>Universal:</strong> works with mouse, keyboard, and touch inputs
-- <Emoji emoji="♿" /> <strong>Accessible:</strong> WAI-ARIA compatible
-- <Emoji emoji="🖌" /> <strong>Themeable:</strong> style via custom CSS, includes extra themes and animations
-- <Emoji emoji="🔌" /> <strong>Pluggable:</strong> enhance functionality with plugins
-- <Emoji emoji="🌳" /> <strong>Tree-shakable:</strong> minimize bundle size by importing what you need
-- <Emoji emoji="🧩" /> <strong>Typed:</strong> TypeScript support out of the box
-- <Emoji emoji="🌐" /> <strong>Supports IE11+:</strong> compatible with 99% of desktop and 97% of mobile users
+Tippy.js is the complete tooltip, popover, dropdown, and menu solution for the
+web, powered by [Popper](https://popper.js.org).
 
-Ready to start? Visit [Getting Started](/getting-started/), or view a demo of
+It's a generic abstraction for the logic and styling of elements that pop out
+from the flow of the document and float next to a reference element, overlaid on
+top of the UI.
+
+- <Icon src={brain} alt="brain" float /> <strong>Smart:</strong> optimized positioning
+  engine for flipping and overflow prevention
+- <Icon src={pointer} alt="mobile" float /> <strong>Universal:</strong> works with
+  mouse, keyboard, and touch inputs
+- <Icon src={wheelchair} alt="wheelchair" float /> <strong>Accessible:</strong> WAI-ARIA
+  compliant
+- <Icon src={paintbrush} alt="paintbrush" float /> <strong>Themeable:</strong> style
+  via custom CSS, includes extra themes and animations
+- <Icon src={typescript} alt="typescript" float /> <strong>Typed:</strong> TypeScript
+  support out of the box
+
+Ready to start? Visit [Getting Started](/v6/getting-started/), or view a demo of
 Tippy's features below.
 
 ---
@@ -53,7 +64,7 @@ You can initialize it like so:
 
 ```js
 tippy('#myButton', {
-  content: "I'm a Tippy tooltip!"
+  content: "I'm a Tippy tooltip!",
 });
 ```
 
@@ -81,14 +92,27 @@ Additionally, the tooltip can be shifted along the axis using the suffix
           key={placement}
           content="Tooltip"
           placement={placement}
-          flip={false}
           arrow={false}
+          popperOptions={{
+            modifiers: [
+              {
+                name: 'flip',
+                enabled: false,
+              },
+              {
+                name: 'preventOverflow',
+                options: {
+                  altAxis: true,
+                },
+              },
+            ],
+          }}
         >
           <Button
             style={{
               display: 'inline-block',
               width: '100%',
-              height: '100%'
+              height: '100%',
             }}
           >
             {placement}
@@ -117,10 +141,10 @@ modified, or be disabled completely.
   <Tippy arrow="round" animation="fade" animation="fade">
     <Button>Round</Button>
   </Tippy>
-  <Tippy animation="fade" theme="large-arrow" distance={16}>
+  <Tippy animation="fade" theme="large-arrow" offset={[0, 16]}>
     <Button>Large</Button>
   </Tippy>
-  <Tippy animation="fade" theme="small-arrow" distance={8}>
+  <Tippy animation="fade" theme="small-arrow" offset={[0, 8]}>
     <Button>Small</Button>
   </Tippy>
   <Tippy animation="fade" theme="wide-arrow">
@@ -144,7 +168,7 @@ These animations are included in the package and can be imported separately.
 
 <Demo>
   <Row>
-    {EXTRA_ANIMATIONS.map(animation => (
+    {EXTRA_ANIMATIONS.map((animation) => (
       <Col
         key={animation}
         base={12}
@@ -157,7 +181,7 @@ These animations are included in the package and can be imported separately.
           <Button
             style={{
               width: '100%',
-              height: '100%'
+              height: '100%',
             }}
           >
             {animation}
@@ -181,8 +205,8 @@ These animations are included in the package and can be imported separately.
 Add CSS spring physics to the animation using `transition-timing-function`.
 
 <Demo>
-  {EXTRA_ANIMATIONS.filter(animation => animation.includes('scale')).map(
-    animation => (
+  {EXTRA_ANIMATIONS.filter((animation) => animation.includes('scale')).map(
+    (animation) => (
       <Tippy
         key={animation}
         animation={animation}
@@ -206,13 +230,16 @@ for example using the `animate.css` package:
     animation="fade"
     animateFill={false}
     duration={[500, 200]}
-    onMount={instance => {
+    onMount={(instance) => {
       requestAnimationFrame(() => {
-        instance.popperChildren.tooltip.classList.add('rubberBand', 'animated');
+        instance.popper.firstElementChild.classList.add(
+          'rubberBand',
+          'animated'
+        );
       });
     }}
-    onHidden={instance => {
-      instance.popperChildren.tooltip.classList.remove(
+    onHidden={(instance) => {
+      instance.popper.firstElementChild.classList.remove(
         'rubberBand',
         'animated'
       );
@@ -224,13 +251,13 @@ for example using the `animate.css` package:
     animation="fade"
     animateFill={false}
     duration={[500, 200]}
-    onMount={instance => {
+    onMount={(instance) => {
       requestAnimationFrame(() => {
-        instance.popperChildren.tooltip.classList.add('tada', 'animated');
+        instance.popper.firstElementChild.classList.add('tada', 'animated');
       });
     }}
-    onHidden={instance => {
-      instance.popperChildren.tooltip.classList.remove('tada', 'animated');
+    onHidden={(instance) => {
+      instance.popper.firstElementChild.classList.remove('tada', 'animated');
     }}
   >
     <Button>tada</Button>
@@ -265,7 +292,7 @@ Tooltips can have custom styling.
 These themes are included in the package and can be imported separately.
 
 <Demo>
-  {['light', 'light-border', 'material', 'translucent'].map(theme => (
+  {['light', 'light-border', 'material', 'translucent'].map((theme) => (
     <Tippy key={theme} theme={theme} animateFill={false}>
       <Button>{theme}</Button>
     </Tippy>
@@ -277,7 +304,7 @@ These themes are included in the package and can be imported separately.
 You can apply any CSS to a tippy via a theme.
 
 <Demo>
-  {['gradient', 'retro', 'forest'].map(theme => (
+  {['gradient', 'retro', 'forest'].map((theme) => (
     <Tippy key={theme} theme={theme} animateFill={false} arrow={false}>
       <Button>{theme}</Button>
     </Tippy>
@@ -444,32 +471,7 @@ A tippy can be nested within another one.
 
 This allows you to create a hover menu system.
 
----
+### Plenty more...
 
-### Multiple
-
-Attach many tippies to a single element.
-
-<Demo>
-  <Multiple />
-</Demo>
-
----
-
-### Miscellaneous
-
-<Demo>
-  <Tippy offset={50}>
-    <Button>Offset</Button>
-  </Tippy>
-  <Tippy distance={20}>
-    <Button>Distance</Button>
-  </Tippy>
-  <Tippy maxWidth={100}>
-    <Button>Max width</Button>
-  </Tippy>
-</Demo>
-
-<br />
-
-The above is not a complete list of features. There are plenty more!
+The above is not a complete list of features. Tippy is capable of many more
+things.
